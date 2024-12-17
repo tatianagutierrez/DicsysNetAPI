@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD con Bootstrap</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">CRUD de Productos</h1>
+
+        <!-- Formulario para Crear/Editar -->
+        <form id="productForm" class="mb-4">
+            <input type="hidden" id="productId"> 
+            <div class="mb-3">
+                <label for="productName" class="form-label">Nombre</label>
+                <input type="text" class="form-control" id="productName" placeholder="Nombre del producto" required>
+            </div>
+            <div class="mb-3">
+                <label for="productDescription" class="form-label">Descripción</label>
+                <input type="text" class="form-control" id="productDescription" placeholder="Descripción" required>
+            </div>
+            <div class="mb-3">
+                <label for="productPrice" class="form-label">Precio</label>
+                <input type="number" class="form-control" id="productPrice" placeholder="Precio" required>
+            </div>
+            <div class="mb-3">
+                <label for="productStock" class="form-label">Stock</label>
+                <input type="number" class="form-control" id="productStock" placeholder="Stock" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+
+        <!-- Tabla para listar productos -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bootstrap JS Bundle (con Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript -->
+    <script>
+        const apiUrl = "http://localhost:5217/api/product";
+
+        async function fetchProducts() {
+            const response = await fetch(apiUrl);
+            const products = await response.json();
+            const tableBody = document.getElementById("productTableBody");
+            tableBody.innerHTML = "";
+
+            products.forEach(product => {
+                const row = `
+                    <tr>
+                        <td>${product.id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.description}</td>
+                        <td>${product.price}</td>
+                        <td>${product.stock}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editProduct(${product.id})">Editar</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Borrar</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Función para crear o actualizar un producto
+        async function saveProduct(event) {
+            event.preventDefault();
+            const id = document.getElementById("productId").value;
+            const name = document.getElementById("productName").value;
+            const description = document.getElementById("productDescription").value;
+            const price = document.getElementById("productPrice").value;
+            const stock = document.getElementById("productStock").value;
+
+            const product = { name, description, price, stock };
+
+            if (id) {
+                // Actualizar producto
+                await fetch(`${apiUrl}/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(product)
+                });
+            } else {
+                // Crear producto
+                await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(product)
+                });
+            }
+
+            document.getElementById("productForm").reset();
+            document.getElementById("productId").value = "";
+            fetchProducts();
+        }
+
+        // Función para cargar un producto en el formulario (Editar)
+        async function editProduct(id) {
+            const response = await fetch(`${apiUrl}/${id}`);
+            const product = await response.json();
+
+            document.getElementById("productId").value = product.id;
+            document.getElementById("productName").value = product.name;
+            document.getElementById("productDescription").value = product.description;
+            document.getElementById("productPrice").value = product.price;
+            document.getElementById("productStock").value = product.stock;
+        }
+
+        // Función para borrar un producto
+        async function deleteProduct(id) {
+            if (confirm("¿Estás seguro de que deseas borrar este producto?")) {
+                await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+                fetchProducts();
+            }
+        }
+
+        // Event Listener para el formulario
+        document.getElementById("productForm").addEventListener("submit", saveProduct);
+
+        // Cargar productos al iniciar
+        fetchProducts();
+    </script>
+</body>
+</html>
